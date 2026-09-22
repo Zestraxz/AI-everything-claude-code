@@ -33,6 +33,17 @@ A diagnostic workflow for agent systems that hide failures behind wrapper layers
 - Agent performance benchmarking — use `agent-eval`
 - Writing new features — use the appropriate workflow skill
 
+## How It Works
+
+The audit treats the agent as a pipeline of twelve layers, from the system prompt through to persisted state, and assumes any layer can corrupt an otherwise correct answer. It runs in four phases:
+
+1. **Scope** — pin down the target system, entrypoints, model stack, symptoms, time window, and which layers are in play.
+2. **Evidence collection** — read the agent loop, tool router, memory admission, and prompt assembly code; pull logs and traces; grep for known anti-patterns such as tool rules that live only in prompt text or hidden LLM calls outside the main loop.
+3. **Failure mapping** — for each finding, record the symptom, the mechanism, the source layer, the root cause, a `file:line` or `log:row` reference, and a confidence score.
+4. **Fix strategy** — order fixes code-first: gate tools in code, make hidden repair agents explicit, remove duplicated context, tighten memory admission and distillation, stop rendering-layer mutation, and move internal flow to typed JSON envelopes.
+
+Findings come back severity-ranked with an architecture diagnosis and an ordered fix plan, and can be emitted as a structured report (see [Report Schema](#report-schema)). The sections below describe each piece in detail.
+
 ## The 12-Layer Stack
 
 Every agent system has these layers. Any of them can corrupt the answer:
@@ -247,6 +258,44 @@ Audits should produce structured reports following this shape:
   ]
 }
 ```
+
+## Examples
+
+### Example 1: "It worked in the playground"
+
+**Symptom:** A support agent answers correctly when the prompt is pasted into the provider playground, but inside the product it invents order numbers.
+
+**Audit path:** Phase 2 evidence shows a `rewrite_response()` helper that runs a second completion to "tidy" the answer before delivery. Phase 3 maps this to layer 11 (hidden repair loops) with a `file:line` reference; the tidy pass strips the tool output that carried the real order number.
+
+**Finding:**
+
+```text
+severity: critical
+title: Hidden repair pass replaces tool-grounded answer
+source_layer: 11 hidden repair loops
+root_cause: rewrite_response() re-prompts without the tool result in context
+evidence_refs: [agent/deliver.py:88]
+confidence: 0.9
+recommended_fix: Remove the rewrite pass, or give it an explicit contract that forwards tool results unchanged
+```
+
+### Example 2: "The tool is flaky"
+
+**Symptom:** The prompt says the agent must call `lookup_inventory` before quoting stock, yet some replies quote stock with no tool call in the trace.
+
+**Audit path:** Quick diagnostic question 1 ("Can the model skip a required tool and still answer?") is yes. Evidence collection confirms the requirement exists only in prompt text; nothing in code checks for the call.
+
+**Fix (code-first):** Gate the reply in code so a quote cannot be emitted unless a `lookup_inventory` result is present in the turn, then keep the prompt instruction as documentation rather than enforcement.
+
+### Example 3: Running the audit on demand
+
+```text
+Run an agent architecture audit on services/concierge-agent.
+Symptoms: users report old trip details appearing in new chats since last Tuesday.
+Focus on layers 2, 3, and 4.
+```
+
+The audit scopes to the memory layers, searches memory admission and distillation code, and reports a memory-contamination finding with the admission rule that lets agent assertions overwrite user corrections.
 
 ## Related Skills
 
