@@ -1,8 +1,6 @@
 {
   "$comment": "Skills still missing a required SKILL.md section (When to Use, How It Works, Examples). Fix a skill, then delete its entry. Regenerate only with: node scripts/ci/validate-skill-sections.js --update-allowlist",
   "skills": [
-    "agent-architecture-audit",
-    "agent-eval",
     "agent-harness-construction",
     "agent-introspection-debugging",
     "agent-self-evaluation",
