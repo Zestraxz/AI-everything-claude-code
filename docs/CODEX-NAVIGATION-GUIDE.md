@@ -45,7 +45,7 @@ Use this quick routing before editing:
 
 | Task | First Files | Likely Verification |
 |------|-------------|---------------------|
-| Add or update a skill | `skills/<name>/`, `.agents/skills/<name>/`, `manifests/`, `agent.yaml` | `node scripts/ci/validate-skills.js`, `node tests/ci/codex-skill-surface.test.js` |
+| Add or update a skill | `skills/<name>/`, `.agents/skills/<name>/`, `manifests/`, `agent.yaml` | `node scripts/ci/validate-skills.js`, `node scripts/ci/validate-skill-sections.js`, `node tests/ci/codex-skill-surface.test.js` |
 | Add or update a command | `commands/`, `docs/COMMAND-AGENT-MAP.md`, `COMMANDS-QUICK-REF.md` | `node scripts/ci/validate-commands.js`, `npm run command-registry:check` |
 | Add a Codex setup change | `.codex/`, `scripts/codex/`, `scripts/lib/install-targets/codex-home.js` | `node tests/scripts/codex-hooks.test.js`, `node tests/codex-config.test.js` |
 | Add installable content | `manifests/`, `scripts/lib/install-*`, `package.json` | `node scripts/ci/validate-install-manifests.js`, targeted install tests |

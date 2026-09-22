@@ -65,6 +65,14 @@ skills/
 
 ### SKILL.md Format
 
+Every curated skill must contain three sections: **When to Use** (or
+"When to Activate"), **How It Works**, and **Examples** (any heading
+containing the word "Example" counts). `scripts/ci/validate-skill-sections.js`
+enforces this as a ratchet: skills that predate the rule are listed in
+`scripts/ci/skill-sections-allowlist.json`, a new skill must have all
+three, and once you add the missing sections to an old skill you delete
+its allowlist entry in the same commit.
+
 ```markdown
 ---
 name: skill-name
@@ -80,7 +88,7 @@ Brief overview of what this skill covers.
 
 Describe scenarios where Claude should use this skill.
 
-## Core Concepts
+## How It Works
 
 Main patterns and guidelines.
 
@@ -155,7 +163,7 @@ Brief overview (1-2 sentences).
 - Scenario 2
 - Scenario 3
 
-## Core Concepts
+## How It Works
 
 ### Concept 1
 
@@ -216,7 +224,7 @@ description: Python idioms, best practices, and patterns for clean, idiomatic co
 - Refactoring Python modules
 - Python code review
 
-## Core Concepts
+## How It Works
 
 ### Context Managers
 

@@ -74,6 +74,15 @@ Scope: Curated skills only (`skills/` in repo).
 - For each subdirectory: must contain `SKILL.md`, non-empty.
 - Does not touch learned/imported/evolved roots.
 
+### validate-skill-sections.js
+
+Scope: Curated skills only (`skills/` in repo).
+
+- Each `SKILL.md` must have When to Use, How It Works, and Examples headings.
+- Skills missing a section must be listed in `scripts/ci/skill-sections-allowlist.json`.
+- An allowlisted skill that gains all three sections must be removed from the list (ratchet).
+- Skips directories with no `SKILL.md`; `validate-skills.js` reports those.
+
 ### validate-install-manifests.js
 
 Scope: Curated paths only. All `paths` in modules must exist in the repo.
