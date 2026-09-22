@@ -18,6 +18,16 @@ A lightweight CLI tool for comparing coding agents head-to-head on reproducible 
 - Running regression checks when an agent updates its model or tooling
 - Producing data-backed agent selection decisions for a team
 
+## How It Works
+
+1. **Tasks are YAML fixtures.** Each task names a repo, a pinned commit, the files in scope, the prompt to give the agent, and one or more judges. Because the commit is pinned, the same task can be replayed weeks later.
+2. **Every run is isolated.** For each agent and each trial, the tool creates a fresh git worktree from the pinned commit, hands the prompt to the agent, and lets it edit only that worktree. No Docker, no shared state between runs.
+3. **Judges decide pass or fail.** Deterministic judges (`pytest`, a build command) run first, pattern judges (`grep`) check for expected code shapes, and an optional LLM judge scores what the deterministic checks cannot express.
+4. **Metrics are recorded per trial.** Pass or fail, wall-clock time, and API cost where the agent reports it. Repeating trials turns pass or fail into a consistency percentage.
+5. **The report aggregates.** `agent-eval report` groups trials by agent and task and prints pass rate, cost, time, and consistency side by side.
+
+The sections below cover each piece: task definitions and isolation under Core Concepts, the run loop under Workflow, and the judge catalogue under Judge Types.
+
 ## Installation
 
 > **Note:** Install agent-eval from its repository after reviewing the source.
@@ -132,6 +142,51 @@ judge:
       Does this implementation correctly handle exponential backoff?
       Check for: max retries, increasing delays, jitter.
 ```
+
+## Examples
+
+### Example 1: Choosing between two agents for a codebase
+
+Three representative tasks, three trials each, two agents:
+
+```bash
+agent-eval run --task tasks/add-retry-logic.yaml --task tasks/fix-n-plus-one.yaml --task tasks/add-cli-flag.yaml \
+  --agent claude-code --agent aider --runs 3
+agent-eval report --format table
+```
+
+Read the report for consistency first, then pass rate, then cost. An agent that passes 3/3 on every task at a slightly higher cost is usually the safer pick than one that passes 2/3 cheaply, because the failed third would have cost a human review cycle.
+
+### Example 2: Regression check after a model update
+
+Keep the task set and run only the agent whose model or tooling changed. The pinned commit keeps the baseline stable:
+
+```bash
+agent-eval run --task tasks/*.yaml --agent claude-code --runs 3
+agent-eval report --format table
+```
+
+Compare the new table against the one saved from the previous run. A drop in consistency on any task is the signal to investigate before rolling the update out to the team.
+
+### Example 3: A task with a deterministic and an LLM judge
+
+```yaml
+name: paginate-list-endpoint
+repo: ./api
+commit: "9f2e1c0"
+files:
+  - src/routes/items.py
+prompt: |
+  Add cursor-based pagination to GET /items with a default page size of 50.
+judge:
+  - type: pytest
+    command: pytest tests/test_items.py -v
+  - type: llm
+    prompt: |
+      Does the endpoint return an opaque cursor and stop when there are no more items?
+```
+
+The pytest judge guards correctness; the LLM judge catches designs that pass the tests but expose raw offsets as cursors.
 
 ## Best Practices
 
