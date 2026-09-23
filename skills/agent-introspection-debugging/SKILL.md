@@ -32,6 +32,17 @@ Do not use this skill as the primary source for:
 - framework-specific debugging when a narrower ECC skill already exists
 - runtime promises the current harness cannot enforce automatically
 
+## How It Works
+
+The skill replaces blind retries with a four-phase loop that ends in a written report:
+
+1. **Capture** the failure before touching anything: the error, the last tool sequence, the goal in progress, the current context pressure, and the environment assumptions still unverified.
+2. **Diagnose** by matching the capture against known agent failure patterns (loops, context overflow, unreachable services, quota storms, state drift, wrong hypotheses) and classifying it as a logic, state, environment, or policy failure.
+3. **Recover** with the smallest reversible action that would confirm or refute the diagnosis: stop retrying, trim context, verify real state, narrow to one command or test, or escalate.
+4. **Report** in a fixed template so the next agent or human sees the failure, root cause, action, result, and the preventive change worth encoding.
+
+Each phase has a checklist below. The Recovery Heuristics section orders the interventions to try, and the Output Standard section defines what a finished run must state.
+
 ## Four-Phase Loop
 
 ### Phase 1: Failure Capture
@@ -135,6 +146,40 @@ Good pattern:
 - classify the pattern
 - run one direct check
 - change the plan only if the check supports it
+
+## Examples
+
+### Example 1: Loop-limit failure while fixing a test
+
+**Capture.** The run hit the maximum tool-call limit. The last twelve calls alternate between editing `src/parser.ts` and running `npm test`, each edit changing a regex slightly. Goal in progress: make `parses nested brackets` pass.
+
+**Diagnose.** Pattern: repeated same command with no forward progress. Classification: logic failure with a wrong hypothesis. The agent never read the failing assertion; it guessed at the regex.
+
+**Recover.** Stop editing. Run the single failing test with verbose output and read the expected versus actual values. The assertion shows the parser is fine and the fixture has an unbalanced bracket.
+
+**Report.**
+
+```markdown
+## Agent Self-Debug Report
+- Session / task: fix parses-nested-brackets
+- Failure: tool-call limit after 12 edit/test cycles
+- Root cause: wrong hypothesis; fixture data was malformed, parser was correct
+- Recovery action: ran the one failing test verbosely and read the diff
+- Result: success
+- Token / time burn risk: high; 12 cycles spent before observation
+- Follow-up needed: none
+- Preventive change to encode later: read the assertion before the first edit
+```
+
+### Example 2: Connection refused during an integration step
+
+**Capture.** `ECONNREFUSED 127.0.0.1:5432` on the third retry of a migration command. Environment assumption not yet verified: that the database container is running.
+
+**Diagnose.** Pattern: service unavailable or wrong port. Classification: environment failure, likely deterministic. The smallest discriminating check is a health probe, not another migration attempt.
+
+**Recover.** Run the container status command. The database container exited on startup because its data volume is missing. Restart it with the volume mounted, confirm the port answers, then run the migration once.
+
+**Report.** Result `success`, root cause `database container not running`, preventive change `add a health check before migration steps`. If the container could not be restarted from this environment, the result would be `blocked` with an escalation note instead of further retries.
 
 ## Integration with ECC
 
