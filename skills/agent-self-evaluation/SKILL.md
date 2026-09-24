@@ -17,6 +17,15 @@ After completing a complex task, the agent pauses to rate its own output against
 - When the user asks "how good was that?" or "rate yourself"
 - At the end of any session Stop hook (if configured — see `references/hook-integration.md`)
 
+## How It Works
+
+1. **Collect the raw material.** Re-read the original request, the final deliverable, any tool output that proves correctness (test results, exit codes, lint), and any corrections the user gave along the way.
+2. **Score the five axes independently.** For accuracy, completeness, clarity, actionability, and conciseness, find evidence in the output, assign 1 to 5, and for anything below 5 write one sentence naming the exact gap. Never average first and work backwards.
+3. **Write the report.** Use `templates/evaluation-report.md`: a one-line summary, the scorecard with evidence per axis, the rounded average, one to three improvements ranked by impact, and the self-check question "Would the user agree?"
+4. **Apply the improvement.** Anything scored 3 or below is either fixed on the spot if it takes under 30 seconds, or flagged explicitly with the fix that would raise the score.
+
+The Evidence Rule ties it together: a score is only as good as the gap it cites. The sections below give the axis definitions, the scale, the step-by-step workflow, and worked scorecards.
+
 ## Core Concepts
 
 ### The 5 Evaluation Axes
